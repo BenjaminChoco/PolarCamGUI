@@ -1,4 +1,4 @@
-function cam_gui_v5
+function cam_gui
 % cam_gui create a window to visualize the videostream of the camera. It
 % also enable us to choose between different processing applied to the
 % images : separation of the polarisations for 4D imaging, DoLP processing,
@@ -56,7 +56,7 @@ hsizeY = uicontrol('style','Edit',...
            'Callback',@sizeYedit_Callback);
          
 % Text box enabling to modify the exposition time :
-htext_expo  = uicontrol('Style','text','String','ExposureTime (Âµs) :',...
+htext_expo  = uicontrol('Style','text','String','ExposureTime (µs) :',...
            'Position',[10,410,100,25]);
 
 hexpo = uicontrol('style','Edit',...
@@ -97,7 +97,7 @@ hpopup = uicontrol('Style','popupmenu',...
            'Callback',@popup_menu_Callback);       
        
 
-% Menu d'enregistrement d'une sÃ©rie d'images.
+% Menu d'enregistrement d'une série d'images.
 htext_save = uicontrol('Style','text','String','Saving tools :',...
            'Position',[50,190,100,25]);
 
@@ -189,7 +189,7 @@ catch
     end
 end
 
-% % Initialisation des paramÃ¨tres de la camÃ©ra
+% % Initialisation des paramètres de la caméra
 
 src = getselectedsource(vid); % 'src' variable enable to rule the parameters of the camera.
 vid.FramesPerTrigger = 1; % Only 1 image is acquire when trigger is activated.
@@ -199,7 +199,7 @@ triggerconfig(vid, 'manual');
 src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketDelay = 100000; % A value around 10000 lead to a stable transmission with near 10 frames per second.
-% src.DeviceLinkThroughputLimit = 100000000; % valeur par dÃ©fault : 125000000
+% src.DeviceLinkThroughputLimit = 100000000; % valeur par défault : 125000000
 framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
 src.DefectCorrectionEnable = 'False'; % One diseable the pixel correction.
@@ -243,9 +243,9 @@ movegui(f,'center')
 vid
 src
 
-% Loading the polarimÃ©tric calibration matrix : Wt_sparse (pseudo inverse
+% Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
 % of W)
-Wt_sparse = load('C:\Users\Benjamin\Desktop\Calibration\Calibration polarimÃ©trique\VariablesCalibPolarP1\Wt_sparse');
+Wt_sparse = load('C:\Users\Benjamin\Desktop\Calibration\Calibration polarimétrique\VariablesCalibPolarP1\Wt_sparse');
 Wt_sparse = Wt_sparse.Wt_sparse;
 
 % SIze of the images
@@ -273,7 +273,7 @@ function initbutton_Callback(source,eventdata)
     src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
     src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
     src.PacketDelay = 100000; % A value around 10000 leads to a stable transmission with near 10 frames per second.
-%     src.DeviceLinkThroughputLimit = 100000000; % valeur par dÃ©fault : 125000000
+%     src.DeviceLinkThroughputLimit = 100000000; % valeur par défault : 125000000
     framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
     src.DefectCorrectionEnable = 'False'; % One diseables the pixel correction.
@@ -495,7 +495,7 @@ function histbutton_Callback(source,eventdata)
         histogram(I90,'DisplayStyle','stairs')
         histogram(I135,'DisplayStyle','stairs')
         hold off
-        legend('0Â°','45Â°','90Â°','135Â°')
+        legend('0°','45°','90°','135°')
         clear I0 I45 I90 I135
     end
     if or(isequal(display_type,'dolp'),isequal(display_type,'aop'))
