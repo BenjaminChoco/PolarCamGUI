@@ -35,7 +35,7 @@ hoffset = uicontrol('style','Edit',...
            'Position',[10, 450 100 25],...
            'Callback',@offsetedit_Callback); 
        
-% Modification de la taille de l'image :
+% Modification of the image size :
 htext_size = uicontrol('Style','text','String','Size :',...
            'Position',[170,470,100,25]);
        
@@ -64,7 +64,7 @@ hexpo = uicontrol('style','Edit',...
            'Position',[10, 390 100 25],...
            'Callback',@expoedit_Callback);
 
-% Affichage d'un histogramme :
+% Histogram plot :
 hhist = uicontrol('style','pushbutton',...
            'String','hist',...
            'Position',[170, 390 100 25],...
@@ -97,7 +97,7 @@ hpopup = uicontrol('Style','popupmenu',...
            'Callback',@popup_menu_Callback);       
        
 
-% Menu d'enregistrement d'une série d'images.
+% Saving menu : to save image series
 htext_save = uicontrol('Style','text','String','Saving tools :',...
            'Position',[50,190,100,25]);
 
@@ -189,7 +189,7 @@ catch
     end
 end
 
-% % Initialisation des paramètres de la caméra
+% % Initialisation of the camera parameters
 
 src = getselectedsource(vid); % 'src' variable enable to rule the parameters of the camera.
 vid.FramesPerTrigger = 1; % Only 1 image is acquire when trigger is activated.
@@ -199,7 +199,7 @@ triggerconfig(vid, 'manual');
 src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketDelay = 100000; % A value around 10000 lead to a stable transmission with near 10 frames per second.
-% src.DeviceLinkThroughputLimit = 100000000; % valeur par défault : 125000000
+% src.DeviceLinkThroughputLimit = 100000000; % default value : 125000000
 framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
 src.DefectCorrectionEnable = 'False'; % One diseable the pixel correction.
@@ -218,7 +218,7 @@ Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
 stop(vid) % Stop the transmission of images.
 
 % Initial correction of the DSNU
-Ioffset = load('C:\Users\Benjamin\Desktop\Calibration\DSNU_20ms_ND.mat');
+Ioffset = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\DSNU_20ms_ND.mat');
 Ioffset = Ioffset.Ioffset;
 I = double(Iraw) - Ioffset;
 
@@ -245,7 +245,7 @@ src
 
 % Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
 % of W)
-Wt_sparse = load('C:\Users\Benjamin\Desktop\Calibration\Calibration polarimétrique\VariablesCalibPolarP1\Wt_sparse');
+Wt_sparse = load(':\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
 Wt_sparse = Wt_sparse.Wt_sparse;
 
 % SIze of the images
@@ -273,7 +273,7 @@ function initbutton_Callback(source,eventdata)
     src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
     src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
     src.PacketDelay = 100000; % A value around 10000 leads to a stable transmission with near 10 frames per second.
-%     src.DeviceLinkThroughputLimit = 100000000; % valeur par défault : 125000000
+%     src.DeviceLinkThroughputLimit = 100000000; % default value : 125000000
     framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
     src.DefectCorrectionEnable = 'False'; % One diseables the pixel correction.
@@ -402,7 +402,7 @@ function offsetedit_Callback(source,eventdata)
 %   flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
 end
 
-function sizeXedit_Callback(source,eventdata) %% !!!!!!!!!!!!! ATTENTION : confusion Dx, Dy !!!!!!!!!!!!!!!!!
+function sizeXedit_Callback(source,eventdata)
     roi = vid.ROIPosition;
     Dx = str2double(get(source,'String')); % Set the ROI as wrote in the text box.
     vid.ROIPosition = [floor((2448-Dx)/2) roi(2) Dx roi(4)];
