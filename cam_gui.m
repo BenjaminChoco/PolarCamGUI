@@ -127,7 +127,12 @@ hsave_btn = uicontrol('style','pushbutton',...
            'String','save',...
            'Position',[170, 50, 100, 25],...
            'Callback',@savebutton_Callback);
+
        
+hclosegui_btn = uicontrol('style','pushbutton',...
+           'String','Close GUI',...
+           'Position',[170, 20, 100, 25],...
+           'Callback',@CloseGUIbutton_Callback);
        
 % Initialisation of the image size and position. 
 ha = axes('Units','pixels','Position',[300,0,550,550]);
@@ -137,7 +142,7 @@ align([htext_save_path, hsave_path, htext_save,...
     htext_stream, htext_mode, hpopup],'Center','None');
 
 align([htext_offset, hoffset, htext_init, hpopup_init, hstart, htext_save_nb, hsave_nb, hexpo, htext_expo, hpopup_save],'Center','None');
-align([hinit, hstop, htext_save_name, hsave_name, hhist, hsave_btn],'Center','None');   
+align([hinit, hstop, htext_save_name, hsave_name, hhist, hsave_btn, hclosegui_btn],'Center','None');   
 
 
 % Initialize the UI.
@@ -171,8 +176,10 @@ htext_sizeX.Units = 'normalized';
 hsizeX.Units = 'normalized';
 htext_sizeY.Units = 'normalized';
 hsizeY.Units = 'normalized';
+hclosegui_btn = 'normalized';
 
 % Initiate camera/ check which camera is connected
+imaqreset
 try
     vid = videoinput('gige', 1, 'Mono12'); % 'vid' variable enable to drive the camera.
     hpopup_init.Value = 2;
@@ -190,7 +197,7 @@ catch
 end
 
 % % Initialisation of the camera parameters
-
+flushdata(vid)
 src = getselectedsource(vid); % 'src' variable enable to rule the parameters of the camera.
 vid.FramesPerTrigger = 1; % Only 1 image is acquire when trigger is activated.
 % vid.TriggerRepeat = Inf; % When acquiring, the trigger is activated repeatedly. Use 'stop(vid)' to stop it.
@@ -245,7 +252,7 @@ src
 
 % Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
 % of W)
-Wt_sparse = load(':\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
+Wt_sparse = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
 Wt_sparse = Wt_sparse.Wt_sparse;
 
 % SIze of the images
@@ -548,5 +555,13 @@ function [I] = Display()
 end
 
 
+
+% Function for closing the GUI and resetting the camera
+
+function CloseGUIbutton_Callback(source,eventdata)
+    flushdata(vid)
+    imaqreset
+    close(f)
+end
 % End of the gui function
 end
