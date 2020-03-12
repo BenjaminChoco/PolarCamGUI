@@ -132,7 +132,7 @@ hsave_btn = uicontrol('style','pushbutton',...
 hclosegui_btn = uicontrol('style','pushbutton',...
            'String','Close GUI',...
            'Position',[170, 20, 100, 25],...
-           'Callback',@CloseGUIbutton_Callback);
+           'Callback',@CloseGUIbutton_Callback, 'BackgroundColor', 'r');
        
 % Initialisation of the image size and position. 
 ha = axes('Units','pixels','Position',[300,0,550,550]);
@@ -252,8 +252,9 @@ src
 
 % Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
 % of W)
+g = 0.37;
 Wt_sparse = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
-Wt_sparse = Wt_sparse.Wt_sparse;
+Wt_sparse = Wt_sparse.Wt_sparse ./g;
 
 % SIze of the images
 Dx = 2448;
