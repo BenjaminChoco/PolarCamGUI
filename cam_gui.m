@@ -1,4 +1,4 @@
-function cam_gui
+
 % cam_gui create a window to visualize the videostream of the camera. It
 % also enable us to choose between different processing applied to the
 % images : separation of the polarisations for 4D imaging, DoLP processing,
@@ -14,7 +14,10 @@ DarkBackground = [0.2, 0.2, 0.2];
 DarkForeground = [0.8, 0.8, 0.8];
 
 % Initialize the window
-f = figure('Visible','off','Position',[360,500,900,550],'Color',DarkWindow);
+hFig = figure('Visible','off',...
+            'Tag', 'hFigure', ...
+            'Position',[200,200,900,550],...
+            'Color',DarkWindow);
 
 %% Construct the components.
 
@@ -134,7 +137,7 @@ htext_mode  = uicontrol('Style','text','String','Display choice :',...
 % Popup menu enabling to choose between the different processings to apply
 % to the image : (4D, DOLP, AOP, RAW).
 hpopup = uicontrol('Style','popupmenu',...
-           'String',{'Mosaique', 'DOLP', 'AOP', 'Raw', 'S0'},...
+           'String',{'Mosaique', 'DOLP', 'AOP', 'Raw', 'S0', 'HSV'},...
            'Position',[50,260,100,25],...
            'Callback',@popup_menu_Callback,...
              'BackgroundColor', DarkBackground,...
@@ -152,7 +155,7 @@ htext_save_nb = uicontrol('Style','text','String','nb of frames to save :',...
              'BackgroundColor', DarkWindow,...
              'ForegroundColor', DarkForeground);
 hsave_nb = uicontrol('style','Edit',...
-           'String','10',...
+           'String','1',...
            'Position',[0, 140 60 25],...
              'BackgroundColor', DarkBackground,...
              'ForegroundColor', DarkForeground);
@@ -209,7 +212,7 @@ align([hinit, hstop, htext_save_name, hsave_name, hhist, hsave_btn, hclosegui_bt
 
 % Initialize the UI.
 % Change units to normalized so components resize automatically.
-f.Units = 'normalized';
+hFig.Units = 'normalized';
 ha.Units = 'normalized';
 hstart.Units = 'normalized';
 hstop.Units = 'normalized';
@@ -258,7 +261,7 @@ catch
     end
 end
 
-% % Initialisation of the camera parameters
+%% Initialisation of the camera parameters
 flushdata(vid)
 src = getselectedsource(vid); % 'src' variable enable to rule the parameters of the camera.
 vid.FramesPerTrigger = 1; % Only 1 image is acquire when trigger is activated.
@@ -268,8 +271,9 @@ triggerconfig(vid, 'manual');
 src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
 src.PacketDelay = 100000; % A value around 10000 lead to a stable transmission with near 10 frames per second.
-% src.DeviceLinkThroughputLimit = 100000000; % default value : 125000000
-framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
+src.AcquisitionFrameRateEnable = 'False';
+% src.AcquisitionFrameRate = 2; % Frame rate fixed.
+% framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
 src.DefectCorrectionEnable = 'False'; % One diseable the pixel correction.
 
@@ -280,19 +284,32 @@ hexpo.String = src.ExposureTime; % The effective exposure time (may be a litle b
 src.BlackLevelRaw = 5; % Set the Offset to 5.
 hoffset.String = src.BlackLevelRaw; %Show the effective offset
 
+
+%% Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
+% of W)
+g = 0.37; % (ADU/e-)
+Wt_sparse = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
+Wt_sparse = Wt_sparse.Wt_sparse;
+
+% Size of the images
+Dx = 2448;
+Dy = 2048;
+
 %% Acquisition of a first image to initialize the display window :
+imaqfind
 start(vid) % start the transmission of images
 pause(1)
 Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
 stop(vid) % Stop the transmission of images.
 
 % Initial correction of the DSNU
-Ioffset = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\DSNU_20ms_ND.mat');
-Ioffset = Ioffset.Ioffset;
-I = double(Iraw) - Ioffset;
+Ioffset_FullSize = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\DSNU_20ms_Ne.mat');
+Ioffset_FullSize = double(getfield(Ioffset_FullSize, cell2mat(fieldnames(Ioffset_FullSize))));
+Ioffset = Ioffset_FullSize;
+Iraw = double(Iraw)/g - Ioffset;
 
 % We initialy use the 4D display for wich we separate the polarisations.
-I = MosaicPolar(I); % Custom function to separate the different polarisation into 4 quadrants of the image.
+I = MosaicPolar(Iraw); % Custom function to separate the different polarisation into 4 quadrants of the image.
 
 % Diplay an image
 % h=imshow(I); % We create a 'handler' h which enables to change the image without relaoding the window.
@@ -303,31 +320,62 @@ colorbar('Color',[0.8 0.8 0.8])
 axis off
 
 %% Assign the a name to appear in the window title.
-f.Name = 'PolarCam GUI';
+hFig.Name = 'PolarCam GUI';
 
 % Move the window to the center of the screen.
-movegui(f,'center')
+movegui(hFig,'center')
 
 % We display in the CommandeWindow the parameters of the camera.
 vid
 src
 
-%% Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
-% of W)
-g = 0.37;
-Wt_sparse = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
-Wt_sparse = Wt_sparse.Wt_sparse ./g;
 
-% Size of the images
-Dx = 2448;
-Dy = 2048;
-
+%% Display On
 % Make the window visible.
-f.Visible = 'on';
+hFig.Visible = 'on';
 
 % We initiate the display mode to the 4D display (a mosaique of the 4 different polarisations).
 display_type = 'mos';
 
+% The video stream is initialy disabled
+display = 0; % variable enabling/disabling the video stream.
+
+%% Storage of global variables in the handle of hFig
+handles = guihandles(hFig) ;
+guidata(hFig,handles) ;
+
+setappdata(handles.hFigure,'vid',vid) ;
+setappdata(handles.hFigure,'src',src) ;
+setappdata(handles.hFigure,'g',g) ;
+setappdata(handles.hFigure,'Wt_sparse',Wt_sparse) ;
+setappdata(handles.hFigure,'Dx',Dx) ;
+setappdata(handles.hFigure,'Dy',Dy) ;
+setappdata(handles.hFigure,'Iraw',Iraw) ;
+setappdata(handles.hFigure,'Ioffset',Ioffset) ;
+setappdata(handles.hFigure,'Ioffset_FullSize',Ioffset_FullSize) ;
+setappdata(handles.hFigure,'I',I) ;
+setappdata(handles.hFigure,'h',h) ;
+setappdata(handles.hFigure,'display_type',display_type) ;
+setappdata(handles.hFigure,'display',display) ;
+
+setappdata(handles.hFigure,'hpopup_init',hpopup_init) ;
+setappdata(handles.hFigure,'hsizeX',hsizeX) ;
+setappdata(handles.hFigure,'hsizeY',hsizeY) ;
+setappdata(handles.hFigure,'hexpo',hexpo) ;
+setappdata(handles.hFigure,'hsave_nb',hsave_nb) ;
+setappdata(handles.hFigure,'hsave_path',hsave_path) ;
+setappdata(handles.hFigure,'hsave_name',hsave_name) ;
+setappdata(handles.hFigure,'hpopup_save',hpopup_save) ;
+
+
+f_hist = figure('Visible','off','Position',[10,10,850,500]);
+ax_hist = axes(f_hist);
+delete f_hist ax_hist
+setappdata(handles.hFigure,'ax_hist',ax_hist) ;
+
+
+
+%{
 %% Function to (re)initialize the camera :
 function initbutton_Callback(source,eventdata)
     imaqreset % Reset all imaq device that may have been logged on recently and avoid some bugs..
@@ -342,7 +390,7 @@ function initbutton_Callback(source,eventdata)
     
     src.DeviceStreamChannelPacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
     src.PacketSize = 9000; % The packets size of the data transmitted is set to the maximum value. (recommended)
-    src.PacketDelay = 100000; % A value around 10000 leads to a stable transmission with near 10 frames per second.
+    src.PacketDelay = 200000; % A value around 10000 leads to a stable transmission with near 10 frames per second.
 %     src.DeviceLinkThroughputLimit = 100000000; % default value : 125000000
     framesPerSecond = CalculateFrameRate(vid, 10) % Mathwork function which calculate the numbre of frames per seconde transmited by the camera.
 
@@ -355,7 +403,9 @@ function initbutton_Callback(source,eventdata)
     hsizeY.String = 2048;
     src
 end
+%}
 
+%{
 %% popup menu function:
 % Enable to change the disaply mode (4D, DoLP, AoP, RAW)
 function popup_menu_Callback(source,eventdata) 
@@ -367,26 +417,29 @@ function popup_menu_Callback(source,eventdata)
     case 'Mosaique' % Choice of a 4D mosaic display
         display_type = 'mos';
         I = MosaicPolar(Iraw);
+        colormap gray
 
     case 'DOLP'
         display_type = 'dolp';
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = Stokes2DoLP(S(:,:,1),S(:,:,2),S(:,:,3));
         I(I>1) = 1;
         I(I<0) = 0;
+        colormap parula
 
     case 'AOP' % Choice of AoP display
         display_type = 'aop';
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = (180/pi)*Stokes2AoP(S(:,:,2),S(:,:,3));
+        colormap hsv
 
     case 'Raw' % Choice of RAW display
         display_type = 'raw';
@@ -395,26 +448,47 @@ function popup_menu_Callback(source,eventdata)
         else
             I = Iraw; % Raw image without any process.
         end
+        colormap gray
         
     case 'S0' % Choice of RAW display
         display_type = 'S0';
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = S(:,:,1);
+        colormap gray
+    case 'HSV' 
+        display_type = 'hsv';
+        [I0, I45, I90, I135] = SeparPolar(double(Iraw));
+        Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
+        I_sparse = Isparse';
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
+        S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
+        
+        DoLP = Stokes2DoLP(S(:,:,1),S(:,:,2),S(:,:,3));
+        DoLP(DoLP>1) = 1;
+        DoLP(DoLP<0) = 0;
+        
+        AoP = pi + Stokes2AoP(S(:,:,2),S(:,:,3));
+        
+        Hue = AoP/max(max(AoP));
+        Sat = DoLP;
+%         Val = S(:,:,1)./max(max(S(:,:,1)));
+        Val = max(cat(3, DoLP, S(:,:,1)./max(max(S(:,:,1)))),[],3);
+
+        HSV = cat(3,Hue,Sat,Val);
+        I = hsv2rgb(HSV);
     end
     h.CData = I; % Update of the image with the handler of the display function 'imshow'.
     drawnow() % Used to refresh the display.
     h.XData = [1,2448];
     h.YData = [1,2048];
 end
+%}
 
-
-% The video stream is initialy disabled
-display = 0; % variable enabling/disabling the video stream.
-
+%{
 %% Function ruling the start button :
 function startbutton_Callback(source,eventdata)
   display = 1; % we enable the display of the video stream
@@ -425,7 +499,7 @@ function startbutton_Callback(source,eventdata)
   % The loop will run until the display variable is set to an other
   % value :
    while display == 1
-        Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+        Iraw = double(getsnapshot(vid))./g - Ioffset; % Acquisition of an image save in the variable I.
 %         wait(vid,1,"logging")
         
         I = Display();
@@ -437,19 +511,23 @@ function startbutton_Callback(source,eventdata)
    end
    stop(vid) % stop the transmission of images by the camera
 end
+%}
 
+%{
 function stopbutton_Callback(source,eventdata)
   display = 0; % Set the variable to 0 to exit the loop in the startbuton_Callback function.
   flushdata(vid)
 end
+%}
 
+%{
 %% Exposure time control
 function expoedit_Callback(source,eventdata)
     src.ExposureTime = str2double(get(source,'String')); % Set the exposure time as wrote in the text box.
     source.String = src.ExposureTime; % write in the text box the effective exposure time used by the camera.
     flushdata(vid)
 
-    Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+    Iraw = double(getsnapshot(vid))./g - Ioffset; % Acquisition of an image save in the variable I.
     hexpo.String = src.ExposureTime;
     I = Display();
     h.CData = I; % Update of the image with the handler of the display function 'imshow'.
@@ -458,14 +536,16 @@ function expoedit_Callback(source,eventdata)
     drawnow() % Used to refresh the display.
 %   flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
 end
+%}
 
+%{
 %% Offset control
 function offsetedit_Callback(source,eventdata)
     src.BlackLevelRaw = str2double(get(source,'String')); % Set the exposure time as wrote in the text box.
     source.String = src.BlackLevelRaw; % write in the text box the effective exposure time used by the camera.
     flushdata(vid)
 
-    Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+    Iraw = getsnapshot(vid)./g; % Acquisition of an image save in the variable I.
     I = Display();
     h.CData = I; % Update of the image with the handler of the display function 'imshow'.
     drawnow() % Used to refresh the display.
@@ -473,7 +553,9 @@ function offsetedit_Callback(source,eventdata)
     h.YData = [1,2048];
 %   flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
 end
+%}
 
+%{
 %% Regin of Interest (ROI) :
 function sizeXedit_Callback(source,eventdata)
     roi = vid.ROIPosition;
@@ -484,7 +566,7 @@ function sizeXedit_Callback(source,eventdata)
     flushdata(vid)
     
     hexpo.String = src.ExposureTime;
-    Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+    Iraw = getsnapshot(vid)./g; % Acquisition of an image save in the variable I.
     I = Display();
     h.CData = I; % Update of the image with the handler of the display function 'imshow'.
     drawnow() % Used to refresh the display.
@@ -492,7 +574,9 @@ function sizeXedit_Callback(source,eventdata)
     h.YData = [1,2048];
 %   flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
 end
+%}
 
+%{
 function sizeYedit_Callback(source,eventdata)
     roi = vid.ROIPosition;
     Dy = str2double(get(source,'String')); % Set the ROI as wrote in the text box.
@@ -503,7 +587,7 @@ function sizeYedit_Callback(source,eventdata)
     flushdata(vid)
     
     hexpo.String = src.ExposureTime;
-    Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+    Iraw = getsnapshot(vid)./g; % Acquisition of an image save in the variable I.
     I = Display();
     h.XData = [1,2448];
     h.YData = [1,2048];
@@ -511,7 +595,9 @@ function sizeYedit_Callback(source,eventdata)
     drawnow() % Used to refresh the display.
 %   flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
 end
+%}
 
+%{
 %% Saving function
 function savebutton_Callback(source,eventdata)
   % Saving parameters :
@@ -529,7 +615,7 @@ function savebutton_Callback(source,eventdata)
   tic
    while and(display == 1, i < Nb)
         i = i + 1;
-        Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
+        Iraw = double(getsnapshot(vid))./g - Ioffset; % Acquisition of an image save in the variable I.
 
         I = Display();
         h.CData = I; % Update of the image with the handler of the display function 'imshow'.
@@ -544,7 +630,11 @@ function savebutton_Callback(source,eventdata)
             save(strcat(path,'\',ExpName,'_I90_',sprintf('%d',i),'.mat'),'I90');
             save(strcat(path,'\',ExpName,'_I135_',sprintf('%d',i),'.mat'),'I135');
         else
-            save(strcat(path,'\',ExpName,'_Iraw_',sprintf('%d',i),'.mat'),'Iraw');
+            if Nb == 1
+                save(strcat(path,'\',ExpName,'.mat'),'Iraw');
+            else
+                save(strcat(path,'\',ExpName,sprintf('_%d',i),'.mat'),'Iraw');
+            end
         end
 
         drawnow() % Used to refresh the display.
@@ -554,8 +644,9 @@ function savebutton_Callback(source,eventdata)
    display = 0;
    stop(vid) % stop the transmission of images by the camera
 end
+%}
 
-
+%{
 %% Display histogram
 function histbutton_Callback(source,eventdata)
     I = Display();
@@ -564,7 +655,7 @@ function histbutton_Callback(source,eventdata)
         histogram(I,'BinMethod','integers','DisplayStyle','stairs');
     end
     if isequal(display_type,'mos')
-        [I0, I45, I90, I135] = SeparPolar(Iraw);
+        [I0, I45, I90, I135] = SeparPolar(I);
         hold on
         histogram(I0,'DisplayStyle','stairs')
         histogram(I45,'DisplayStyle','stairs')
@@ -583,30 +674,34 @@ function histbutton_Callback(source,eventdata)
     grid on
     f_hist.Visible = 'on';
 end
+%}
 
-
+%{
 %% General display control
 function [I] = Display()
     if isequal(display_type,'mos')
         I = MosaicPolar(Iraw); % Custom function to separate the different polarisation into 4 quadrants of the image.
+        colormap gray
     end
     if isequal(display_type,'dolp')
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = Stokes2DoLP(S(:,:,1),S(:,:,2),S(:,:,3));
         I(I>1) = 1;
         I(I<0) = 0;
+        colormap parula
     end
     if isequal(display_type,'aop')
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = (180/pi)*Stokes2AoP(S(:,:,2),S(:,:,3));
+        colormap hsv
     end
     if isequal(display_type,'raw')
         if or(isequal(vid.VideoFormat, 'Mono16'), isequal(vid.VideoFormat, 'BayerRG16'))
@@ -614,25 +709,49 @@ function [I] = Display()
         else
             I = Iraw; % Raw image without any process.
         end
+        colormap gray
     end
     if isequal(display_type,'S0')
         [I0, I45, I90, I135] = SeparPolar(double(Iraw));
         Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
         I_sparse = Isparse';
-        S_sparse = Wt_sparse*I_sparse(:);
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
         S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
         I = S(:,:,1);
+        colormap gray
+    end
+    if isequal(display_type,'hsv')
+        [I0, I45, I90, I135] = SeparPolar(double(Iraw));
+        Isparse = reshape(cat(3,I90,I45, I135, I0),[Dx*Dy/4,4]);
+        I_sparse = Isparse';
+        S_sparse = Wt_sparse(1:Dx*Dy*3/4,1:Dx*Dy)*I_sparse(:);
+        S = permute(reshape(S_sparse,[3,Dy/2,Dx/2]),[2,3,1]);
+        
+        DoLP = Stokes2DoLP(S(:,:,1),S(:,:,2),S(:,:,3));
+        DoLP(DoLP>1) = 1;
+        DoLP(DoLP<0) = 0;
+        
+        AoP = pi + Stokes2AoP(S(:,:,2),S(:,:,3));
+        
+        Hue = AoP/max(max(AoP));
+        Sat = DoLP;
+%         Val = S(:,:,1)./max(max(S(:,:,1)));
+        Val = max(cat(3, DoLP, S(:,:,1)./max(max(S(:,:,1)))),[],3);
+
+        HSV = cat(3,Hue,Sat,Val);
+        I = hsv2rgb(HSV);
+        
     end
 end
+%}
 
-
-
+%{
 %% Function for closing the GUI and resetting the camera
 
 function CloseGUIbutton_Callback(source,eventdata)
     flushdata(vid)
     imaqreset
-    close(f)
+    close(hFig)
 end
-% End of the gui function
-end
+%}
+
