@@ -288,7 +288,7 @@ hoffset.String = src.BlackLevelRaw; %Show the effective offset
 %% Loading the polarimétric calibration matrix : Wt_sparse (pseudo inverse
 % of W)
 g = 0.37; % (ADU/e-)
-Wt_sparse = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\Wt_sparse');
+Wt_sparse = load('CalibrationData\Wt_sparse');
 Wt_sparse = Wt_sparse.Wt_sparse;
 
 % Size of the images
@@ -303,8 +303,9 @@ Iraw = getsnapshot(vid); % Acquisition of an image save in the variable I.
 stop(vid) % Stop the transmission of images.
 
 % Initial correction of the DSNU
-Ioffset_FullSize = load('C:\Users\Benjamin\Desktop\CodesCamera\gitCodeCam\PolarCamGUI-master\CalibrationData\DSNU_20ms_Ne.mat');
+Ioffset_FullSize = load('CalibrationData\DSNU_20ms_Ne.mat');
 Ioffset_FullSize = double(getfield(Ioffset_FullSize, cell2mat(fieldnames(Ioffset_FullSize))));
+% Ioffset_FullSize = ones(size(Iraw))*5./g;
 Ioffset = Ioffset_FullSize;
 Iraw = double(Iraw)/g - Ioffset;
 

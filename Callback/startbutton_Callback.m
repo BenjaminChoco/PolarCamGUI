@@ -45,7 +45,7 @@ function startbutton_Callback(source,eventdata)
                 histogram(ax_hist, I,'BinMethod','integers','DisplayStyle','stairs');
             end
             if isequal(display_type,'mos')
-                [I0, I45, I90, I135] = SeparPolar(I);
+                [I0, I45, I90, I135] = SeparPolar(Iraw);
                 hold on
                 histogram(ax_hist, I0,'DisplayStyle','stairs')
                 histogram(ax_hist, I45,'DisplayStyle','stairs')
@@ -63,7 +63,7 @@ function startbutton_Callback(source,eventdata)
             end
         end
         
-    %         flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
+        flushdata(vid) % We erase the image data save by the variable vid to keep memory occupation stable.
     end
     stop(vid) % stop the transmission of images by the camera
     

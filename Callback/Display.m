@@ -52,13 +52,13 @@ function [I] = Display(Iraw, Dx, Dy, display_type, Wt_sparse, vid)
         DoLP(DoLP>1) = 1;
         DoLP(DoLP<0) = 0;
         
-        AoP = pi + Stokes2AoP(S(:,:,2),S(:,:,3));
+        AoP = Stokes2AoP(S(:,:,2),S(:,:,3));
         
-        Hue = (AoP/(pi/2)+1)/2;
+        Hue = (pi/2 + AoP)/pi;
         Sat = DoLP;
 %         Val = S(:,:,1)./max(max(S(:,:,1)));
-        Val = max(cat(3, DoLP, S(:,:,1)./max(max(S(:,:,1)))),[],3);
-
+%         Val = max(cat(3, DoLP, S(:,:,1)./max(max(S(:,:,1)))),[],3);
+        Val = ones(size(DoLP));
         HSV = cat(3,Hue,Sat,Val);
         I = hsv2rgb(HSV);
         
